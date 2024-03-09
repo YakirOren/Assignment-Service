@@ -1,0 +1,21 @@
+POST http://localhost:3000/
+Content-Type: application/json
+
+{
+  "user_name": "student-0",
+  "assignment_id": 0,
+  "exercise_id": 0,
+  "data": {
+    "gitlab": {
+      "namespace": "students/seon/python",
+      "source_repo": "templates/the-cloner",
+      "new_repo_name": "The Cloner"
+    },
+    "descriptions": {
+      "git_instructions": false
+    }
+  }
+}
+
+
+
