@@ -24,6 +24,8 @@ type GitlabData struct {
 	HiveInstructions bool   `json:"hive_instructions"`
 }
 
+const RepoCreationFailed = "# ❌ Failed to create a Gitlab repository\nplease ask for help"
+
 func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 	var body Request
 	if err := ctx.BodyParser(&body); err != nil {
@@ -32,14 +34,30 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 
 	log := s.requestLogger(ctx, body.UserName)
 
+	s.auth(ctx, log)
+
 	if body.OnCreationData.Gitlab != nil {
+		s.hive.UpdateAssignment(body.AssignmentID, "Your repo is getting ready please wait....")
 		err := s.processGitlab(body, log)
 		if err != nil {
+			log.Error(err.Error())
+			s.hive.UpdateAssignment(body.AssignmentID, fmt.Sprintf("%s\nrequestID=%s", RepoCreationFailed, ctx.Context().Value("requestid")))
 			return err
 		}
 	}
 
 	return ctx.SendString("DONE")
+}
+
+func (s *Server) auth(ctx *fiber.Ctx, log *slog.Logger) {
+	authToken, ok := ctx.GetReqHeaders()["Authorization"]
+	if !ok {
+		return
+	}
+	if authToken[0] != "" && authToken[0] != s.hive.Token() {
+		s.hive.SetToken(authToken[0])
+		log.Info("auth token has changed")
+	}
 }
 
 func (s *Server) requestLogger(ctx *fiber.Ctx, username string) *slog.Logger {
@@ -81,24 +99,16 @@ func (s *Server) processGitlab(body Request, log *slog.Logger) error {
 	log.Info("created repo", slog.String("path", project.Path))
 
 	log.Info("adding the user to the new group")
-	_, _, err = s.AddUserToProject(user, project)
+	_, _, err = s.addUserToProject(user, project)
 	if err != nil {
 		return fmt.Errorf("failed to add user to project: %w", err)
 	}
 
 	log.Info("creating description")
-
-	// TODO: update assignment description in hive.
-
-	return nil
-}
-
-func (s *Server) AddUserToProject(user *gitlab.User, group *gitlab.Project) (*gitlab.ProjectMember, *gitlab.Response, error) {
-	opt := &gitlab.AddProjectMemberOptions{
-		UserID:      user.ID,
-		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+	err = s.hive.UpdateAssignment(body.AssignmentID, "git description")
+	if err != nil {
+		return fmt.Errorf("failed to update description")
 	}
 
-	return s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
-
+	return nil
 }

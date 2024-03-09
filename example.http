@@ -1,9 +1,10 @@
 POST http://localhost:3000/
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzEwNjA1NDc5LCJpYXQiOjE3MTAwMDU0NzksImp0aSI6ImI2ZWUwNTdhNzgxODQzNDY4NzE0YjE2MDYxN2NiYmZlIiwidXNlcm5hbWUiOiJhcGkiLCJjbGVhcmFuY2UiOjQsInByb2dyYW0iOm51bGwsInVzZXJfaWQiOjJ9.TUW0R38PT6gXU0TzppngN7WDypTLj7X35pmh5r9sA6A
 
 {
-  "user_name": "student-100",
-  "assignment_id": 0,
+  "user_name": "student-1",
+  "assignment_id": 4,
   "exercise_id": 0,
   "data": {
     "gitlab": {
@@ -11,11 +12,16 @@ Content-Type: application/json
       "source_repo": "templates/the-cloner",
       "new_repo_name": "The Cloner"
     },
-    "descriptions": {
-      "git_instructions": false
+    "description": {
+      "instructions": ["git", "python", "C"],
+      "custom_instructions": "git add .\ngit commit -m\n"
     }
   }
 }
+
+
+
+
 
 
 

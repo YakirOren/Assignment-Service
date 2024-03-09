@@ -86,3 +86,13 @@ func (s *Server) createGroup(groupName string, path string) (*gitlab.Group, erro
 
 	return group, nil
 }
+
+func (s *Server) addUserToProject(user *gitlab.User, group *gitlab.Project) (*gitlab.ProjectMember, *gitlab.Response, error) {
+	opt := &gitlab.AddProjectMemberOptions{
+		UserID:      user.ID,
+		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+	}
+
+	return s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
+
+}
