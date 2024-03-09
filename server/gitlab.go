@@ -41,7 +41,23 @@ func (s *Server) createUsersSubGroup(username string, namespace string) (*gitlab
 	return subgroup, nil
 }
 
-func (s *Server) ListGroups(groupName string, namespace string) ([]*gitlab.Group, bool) {
+func (s *Server) listUsersByName(username string) (*gitlab.User, bool) {
+	users, r, _ := s.gitlab.Users.ListUsers(&gitlab.ListUsersOptions{
+		Username: gitlab.Ptr(username),
+	})
+
+	if r.StatusCode == http.StatusNotFound {
+		return nil, false
+	}
+
+	if len(users) == 0 {
+		return nil, false
+	}
+
+	return users[0], true
+}
+
+func (s *Server) listGroupsByName(groupName string, namespace string) (*gitlab.Group, bool) {
 	groups, r, _ := s.gitlab.Groups.ListSubGroups(namespace, &gitlab.ListSubGroupsOptions{
 		Search: gitlab.Ptr(groupName),
 	})
@@ -54,10 +70,10 @@ func (s *Server) ListGroups(groupName string, namespace string) ([]*gitlab.Group
 		return nil, false
 	}
 
-	return groups, true
+	return groups[0], true
 }
 
-func (s *Server) CreateGroup(groupName string, path string) (*gitlab.Group, error) {
+func (s *Server) createGroup(groupName string, path string) (*gitlab.Group, error) {
 	opt := &gitlab.CreateGroupOptions{
 		Name: gitlab.Ptr(groupName),
 		Path: gitlab.Ptr(path),

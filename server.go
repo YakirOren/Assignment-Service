@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	conf := &config.Config{}
 	opts := env.Options{UseFieldNameByDefault: true}
@@ -45,5 +45,5 @@ func main() {
 		return ctx.SendString(fmt.Sprintf("Welcome to %s", conf.ApplicationName))
 	})
 
-	app.Listen(fmt.Sprintf(":%s", conf.Port))
+	logger.Error(app.Listen(fmt.Sprintf(":%s", conf.Port)).Error())
 }

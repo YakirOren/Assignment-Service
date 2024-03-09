@@ -49,10 +49,15 @@ func (s *Server) requestLogger(ctx *fiber.Ctx, username string) *slog.Logger {
 func (s *Server) processGitlab(body Request, log *slog.Logger) error {
 	data := *body.OnCreationData.Gitlab
 
+	user, exists := s.listUsersByName(body.UserName)
+	if !exists {
+		return fiber.NewError(fiber.StatusBadRequest, "user doesn't exist on gitlab")
+	}
+
 	var usersGroup *gitlab.Group
 
 	log.Info("checking if the users subgroup exists")
-	groups, exists := s.ListGroups(body.UserName, data.Namespace)
+	usersGroup, exists = s.listGroupsByName(body.UserName, data.Namespace)
 	if !exists {
 		log.Info("creating subgroup for the user")
 		var err error
@@ -67,23 +72,33 @@ func (s *Server) processGitlab(body Request, log *slog.Logger) error {
 		}
 	}
 
-	usersGroup = groups[0]
-
 	log.Info("creating new repo")
 	project, err := s.CreateRepoInGroup(usersGroup, data)
 	if err != nil {
 		return fmt.Errorf("failed to create new repo inside the users group: %w", err)
 	}
 
-	log.Info(project.WebURL)
+	log.Info("created repo", slog.String("path", project.Path))
 
-	// add the user to the new group
-
-	//s.processGitlab.ProjectMembers.AddProjectMember()
+	log.Info("adding the user to the new group")
+	_, _, err = s.AddUserToProject(user, project)
+	if err != nil {
+		return fmt.Errorf("failed to add user to project: %w", err)
+	}
 
 	log.Info("creating description")
 
-	// update assignment description in hive.
+	// TODO: update assignment description in hive.
 
 	return nil
+}
+
+func (s *Server) AddUserToProject(user *gitlab.User, group *gitlab.Project) (*gitlab.ProjectMember, *gitlab.Response, error) {
+	opt := &gitlab.AddProjectMemberOptions{
+		UserID:      user.ID,
+		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+	}
+
+	return s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
+
 }

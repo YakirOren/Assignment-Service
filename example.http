@@ -2,7 +2,7 @@ POST http://localhost:3000/
 Content-Type: application/json
 
 {
-  "user_name": "student-0",
+  "user_name": "student-100",
   "assignment_id": 0,
   "exercise_id": 0,
   "data": {
