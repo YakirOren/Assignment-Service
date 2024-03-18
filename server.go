@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+
+	hive "gitlab-service/hive/web"
+
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	slogfiber "github.com/samber/slog-fiber"
-	hive "gitlab-service/hive/Web"
-	"os"
+
+	"gitlab-service/config"
+	"gitlab-service/server"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"gitlab-service/config"
-	"gitlab-service/server"
-	"log/slog"
 )
 
 func main() {
@@ -27,7 +30,9 @@ func main() {
 		return
 	}
 
-	serv, err := server.NewServer(conf, logger, hive.New(conf.HiveURL))
+	hiveClient := hive.New(conf.HiveURL, conf.InsecureHive, logger)
+
+	serv, err := server.NewServer(conf, logger, hiveClient)
 	if err != nil {
 		logger.Error(err.Error())
 		return

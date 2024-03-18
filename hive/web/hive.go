@@ -1,19 +1,23 @@
-package Web
+package web
 
 import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"gitlab-service/hive"
+	"io"
+	"log/slog"
 	"net/http"
+
+	"gitlab-service/hive"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 type Hive struct {
 	hiveURL string
 	token   string
+	logger  *slog.Logger
 	client  *retryablehttp.Client
 }
 
@@ -25,16 +29,18 @@ func (h *Hive) SetToken(token string) {
 	h.token = token
 }
 
-func New(hiveURL string) hive.Hive {
-	// Configure the HTTP client.
+func New(hiveURL string, insecure bool, logger *slog.Logger) hive.Hive {
 	client := retryablehttp.NewClient()
+	client.Logger = logger
+
 	client.RetryMax = 10
-	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecure}
 
 	return &Hive{
 		hiveURL: hiveURL,
 		client:  client,
 		token:   "",
+		logger:  logger,
 	}
 }
 
@@ -42,7 +48,7 @@ type UpdateAssignmentRequest struct {
 	Description string `json:"description"`
 }
 
-func (h *Hive) UpdateAssignment(assignmentID int, description string) error {
+func (h *Hive) UpdateAssignment(assignmentID int, description string) {
 	marshal, _ := json.Marshal(UpdateAssignmentRequest{
 		Description: description,
 	})
@@ -54,19 +60,26 @@ func (h *Hive) UpdateAssignment(assignmentID int, description string) error {
 
 	request, err := retryablehttp.NewRequest(method, url, payload)
 	if err != nil {
-		return err
+		return
 	}
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Authorization", h.token)
 
 	res, err := h.client.Do(request)
+	defer res.Body.Close()
 	if err != nil {
-		return err
+		h.logger.Error(err.Error())
+		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return errors.New("failed to update description")
+		all, err := io.ReadAll(res.Body)
+		if err != nil {
+			return
+		}
+		h.logger.Error(string(all))
+		return
 	}
 
-	return nil
+	return
 }

@@ -1,11 +1,15 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"text/template"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/xanzy/go-gitlab"
-	"log/slog"
 )
 
 type Request struct {
@@ -17,11 +21,16 @@ type Request struct {
 	} `json:"data"`
 }
 
+type Description struct {
+	Instructions      []string `json:"instructions"`
+	CustomInstruction *string  `json:"custom_instructions"`
+}
+
 type GitlabData struct {
-	Namespace        string `json:"namespace"`
-	SourceRepo       string `json:"source_repo"`
-	NewRepoName      string `json:"new_repo_name"`
-	HiveInstructions bool   `json:"hive_instructions"`
+	Namespace            string `json:"namespace"`
+	SourceRepo           string `json:"source_repo"`
+	NewRepoName          string `json:"new_repo_name"`
+	DetailedInstructions bool   `json:"detailed_instructions"`
 }
 
 const RepoCreationFailed = "# ❌ Failed to create a Gitlab repository\nplease ask for help"
@@ -32,16 +41,18 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 		return fmt.Errorf("failed to parse the request body: %w", err)
 	}
 
-	log := s.requestLogger(ctx, body.UserName)
+	log := s.requestLogger(ctx, body)
 
-	s.auth(ctx, log)
+	s.auth(ctx)
 
 	if body.OnCreationData.Gitlab != nil {
-		s.hive.UpdateAssignment(body.AssignmentID, "Your repo is getting ready please wait....")
+		go s.hive.UpdateAssignment(body.AssignmentID, "Your repo is getting ready please wait....")
 		err := s.processGitlab(body, log)
 		if err != nil {
 			log.Error(err.Error())
-			s.hive.UpdateAssignment(body.AssignmentID, fmt.Sprintf("%s\nrequestID=%s", RepoCreationFailed, ctx.Context().Value("requestid")))
+			res2B, _ := json.Marshal(body)
+			log.Info(string(res2B))
+			go s.hive.UpdateAssignment(body.AssignmentID, fmt.Sprintf("%s\nrequestID=%s", RepoCreationFailed, requestID(ctx)))
 			return err
 		}
 	}
@@ -49,19 +60,22 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 	return ctx.SendString("DONE")
 }
 
-func (s *Server) auth(ctx *fiber.Ctx, log *slog.Logger) {
+func requestID(ctx *fiber.Ctx) interface{} {
+	return ctx.Context().Value("requestid")
+}
+
+func (s *Server) auth(ctx *fiber.Ctx) {
 	authToken, ok := ctx.GetReqHeaders()["Authorization"]
 	if !ok {
 		return
 	}
 	if authToken[0] != "" && authToken[0] != s.hive.Token() {
 		s.hive.SetToken(authToken[0])
-		log.Info("auth token has changed")
 	}
 }
 
-func (s *Server) requestLogger(ctx *fiber.Ctx, username string) *slog.Logger {
-	return s.logger.With("username", username).With("requestid", ctx.Context().Value("requestid"))
+func (s *Server) requestLogger(ctx *fiber.Ctx, body Request) *slog.Logger {
+	return s.logger.With("username", body.UserName).With("assignment_id", body.AssignmentID).With("requestid", ctx.Context().Value("requestid"))
 }
 
 func (s *Server) processGitlab(body Request, log *slog.Logger) error {
@@ -99,16 +113,35 @@ func (s *Server) processGitlab(body Request, log *slog.Logger) error {
 	log.Info("created repo", slog.String("path", project.Path))
 
 	log.Info("adding the user to the new group")
-	_, _, err = s.addUserToProject(user, project)
-	if err != nil {
+
+	if err = s.addUserToProject(user, project); err != nil {
 		return fmt.Errorf("failed to add user to project: %w", err)
 	}
 
+	// TODO: remove branch protection
+
 	log.Info("creating description")
-	err = s.hive.UpdateAssignment(body.AssignmentID, "git description")
+	s.hive.UpdateAssignment(body.AssignmentID, "git description")
 	if err != nil {
-		return fmt.Errorf("failed to update description")
+		return errors.New("failed to update assignment description")
 	}
 
 	return nil
+}
+
+func (s *Server) GenerateDescription(project *gitlab.Project) (string, error) {
+	var tmplFile = ``
+	tmpl, err := template.New(tmplFile).ParseFiles(tmplFile)
+	if err != nil {
+		panic(err)
+	}
+
+	buffer := &bytes.Buffer{}
+
+	err = tmpl.Execute(buffer, project)
+	if err != nil {
+		return "", err
+	}
+
+	return buffer.String(), nil
 }

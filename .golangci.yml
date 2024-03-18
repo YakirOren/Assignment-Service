@@ -1,10 +1,11 @@
-# This code is licensed under the terms of the MIT license.
+# This code is licensed under the terms of the MIT license https://opensource.org/license/mit
+# Copyright (c) 2021 Marat Reymers
 
-## Golden config for golangci-lint v1.52.2
+## Golden config for golangci-lint v1.56.2
 #
 # This is the best config for golangci-lint based on my experience and opinion.
 # It is very strict, but not extremely strict.
-# Feel free to adopt and change it for your needs.
+# Feel free to adapt and change it for your needs.
 
 run:
   # Timeout for analysis, e.g. 30s, 5m.
@@ -38,7 +39,8 @@ linters-settings:
       - map
 
   exhaustruct:
-    # List of regular expressions to exclude struct packages and names from check.
+    # List of regular expressions to exclude struct packages and their names from checks.
+    # Regular expressions must match complete canonical struct package/name/structname.
     # Default: []
     exclude:
       # std libs
@@ -74,6 +76,9 @@ linters-settings:
     # If lower than 0, disable the check.
     # Default: 40
     statements: 50
+    # Ignore comments when counting lines.
+    # Default false
+    ignore-comments: true
 
   gocognit:
     # Minimal code complexity to report.
@@ -101,13 +106,16 @@ linters-settings:
     # `strconv.ParseInt`, `strconv.ParseUint`, `strconv.ParseFloat`.
     # Default: []
     ignored-functions:
+      - flag.Arg
+      - flag.Duration.*
+      - flag.Float.*
+      - flag.Int.*
+      - flag.Uint.*
       - os.Chmod
-      - os.Mkdir
-      - os.MkdirAll
+      - os.Mkdir.*
       - os.OpenFile
       - os.WriteFile
-      - prometheus.ExponentialBuckets
-      - prometheus.ExponentialBucketsRange
+      - prometheus.ExponentialBuckets.*
       - prometheus.LinearBuckets
 
   gomodguard:
@@ -125,8 +133,8 @@ linters-settings:
             reason: "satori's package is not maintained"
         - github.com/gofrs/uuid:
             recommendations:
-              - github.com/google/uuid
-            reason: "gofrs' package is not go module"
+              - github.com/gofrs/uuid/v5
+            reason: "gofrs' package was not go module before v5"
 
   govet:
     # Enable all analyzers.
@@ -144,6 +152,11 @@ linters-settings:
         # Default: false
         strict: true
 
+  inamedparam:
+    # Skips check for interface methods with only a single parameter.
+    # Default: false
+    skip-single-param: true
+
   nakedret:
     # Make an issue if func has more lines of code than this setting, and it has naked returns.
     # Default: 30
@@ -159,6 +172,11 @@ linters-settings:
     # Enable to require nolint directives to mention the specific linter being suppressed.
     # Default: false
     require-specific: true
+
+  perfsprint:
+    # Optimizes into strings concatenation.
+    # Default: true
+    strconcat: false
 
   rowserrcheck:
     # database/sql is always checked
@@ -202,6 +220,7 @@ linters:
     - gocheckcompilerdirectives # validates go compiler directive comments (//go:)
     - gochecknoglobals # checks that no global variables exist
     - gochecknoinits # checks that no init functions are present in Go code
+    - gochecksumtype # checks exhaustiveness on Go "sum types"
     - gocognit # computes and checks the cognitive complexity of functions
     - goconst # finds repeated strings that could be replaced by a constant
     - gocritic # provides diagnostics that check for bugs, performance and style issues
@@ -216,6 +235,7 @@ linters:
     - lll # reports long lines
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     - makezero # finds slice declarations with non-zero initial length
+    - mirror # reports wrong mirror patterns of bytes/strings usage
     - musttag # enforces field tags in (un)marshaled structs
     - nakedret # finds naked returns in functions greater than a specified function length
     - nestif # reports deeply nested if statements
@@ -225,15 +245,20 @@ linters:
     - nolintlint # reports ill-formed or insufficient nolint directives
     - nonamedreturns # reports all named returns
     - nosprintfhostport # checks for misuse of Sprintf to construct a host with port in a URL
+    - perfsprint # checks that fmt.Sprintf can be replaced with a faster alternative
     - predeclared # finds code that shadows one of Go's predeclared identifiers
     - promlinter # checks Prometheus metrics naming via promlint
+    - protogetter # reports direct reads from proto message fields when getters should be used
     - reassign # checks that package variables are not reassigned
     - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
     - rowserrcheck # checks whether Err of rows is checked successfully
+    - sloglint # ensure consistent code style when using log/slog
+    - spancheck # checks for mistakes with OpenTelemetry/Census spans
     - sqlclosecheck # checks that sql.Rows and sql.Stmt are closed
     - stylecheck # is a replacement for golint
     - tenv # detects using os.Setenv instead of t.Setenv since Go1.17
     - testableexamples # checks if examples are testable (have an expected output)
+    - testifylint # checks usage of github.com/stretchr/testify
     - testpackage # makes you use a separate _test package
     - tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
     - unconvert # removes unnecessary type conversions
@@ -249,11 +274,14 @@ linters:
     #- ginkgolinter # [if you use ginkgo/gomega] enforces standards of using ginkgo and gomega
     #- godox # detects FIXME, TODO and other comment keywords
     #- goheader # checks is file header matches to pattern
+    #- inamedparam # [great idea, but too strict, need to ignore a lot of cases by default] reports interfaces with unnamed method parameters
     #- interfacebloat # checks the number of methods inside an interface
     #- ireturn # accept interfaces, return concrete types
     #- prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
+    #- tagalign # checks that struct tags are well aligned
     #- varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
     #- wrapcheck # checks that errors returned from external packages are wrapped
+    #- zerologlint # detects the wrong usage of zerolog that a user forgets to dispatch zerolog.Event
 
     ## disabled
     #- containedctx # detects struct contained context.Context field
@@ -266,6 +294,7 @@ linters:
     #- goerr113 # [too strict] checks the errors handling expressions
     #- gofmt # [replaced by goimports] checks whether code was gofmt-ed
     #- gofumpt # [replaced by goimports, gofumports is not available yet] checks whether code was gofumpt-ed
+    #- gosmopolitan # reports certain i18n/l10n anti-patterns in your Go codebase
     #- grouper # analyzes expression groups
     #- importas # enforces consistent import aliases
     #- maintidx # measures the maintainability index of each function
@@ -309,3 +338,6 @@ issues:
         - gosec
         - noctx
         - wrapcheck
+    # TODO: remove after PR is released https://github.com/golangci/golangci-lint/pull/4386
+    - text: "fmt.Sprintf can be replaced with string addition"
+      linters: [ perfsprint ]

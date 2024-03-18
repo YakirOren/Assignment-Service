@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/xanzy/go-gitlab"
 	"net/http"
+
+	"github.com/xanzy/go-gitlab"
 )
 
 func (s *Server) CreateRepoInGroup(group *gitlab.Group, gitlabData GitlabData) (*gitlab.Project, error) {
@@ -10,10 +11,16 @@ func (s *Server) CreateRepoInGroup(group *gitlab.Group, gitlabData GitlabData) (
 		MergeRequestDefaultTargetSelf: gitlab.Ptr(true),
 		Name:                          gitlab.Ptr(gitlabData.NewRepoName),
 		NamespaceID:                   gitlab.Ptr(group.ID),
+		Path:                          gitlab.Ptr(gitlabData.NewRepoName),
 		Visibility:                    gitlab.Ptr(gitlab.PrivateVisibility),
 	}
 
 	project, _, err := s.gitlab.Projects.ForkProject(gitlabData.SourceRepo, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = s.gitlab.Projects.DeleteProjectForkRelation(project.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,26 +80,12 @@ func (s *Server) listGroupsByName(groupName string, namespace string) (*gitlab.G
 	return groups[0], true
 }
 
-func (s *Server) createGroup(groupName string, path string) (*gitlab.Group, error) {
-	opt := &gitlab.CreateGroupOptions{
-		Name: gitlab.Ptr(groupName),
-		Path: gitlab.Ptr(path),
-	}
-
-	group, _, err := s.gitlab.Groups.CreateGroup(opt)
-	if err != nil {
-		return nil, err
-	}
-
-	return group, nil
-}
-
-func (s *Server) addUserToProject(user *gitlab.User, group *gitlab.Project) (*gitlab.ProjectMember, *gitlab.Response, error) {
+func (s *Server) addUserToProject(user *gitlab.User, group *gitlab.Project) error {
 	opt := &gitlab.AddProjectMemberOptions{
 		UserID:      user.ID,
 		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
 	}
 
-	return s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
-
+	_, _, err := s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
+	return err
 }

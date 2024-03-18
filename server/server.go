@@ -2,16 +2,19 @@ package server
 
 import (
 	"fmt"
-	"github.com/xanzy/go-gitlab"
+	"log/slog"
+
 	"gitlab-service/config"
 	"gitlab-service/hive"
-	"log/slog"
+
+	"github.com/xanzy/go-gitlab"
 )
 
 type Server struct {
-	gitlab *gitlab.Client
-	logger *slog.Logger
-	hive   hive.Hive
+	gitlab        *gitlab.Client
+	logger        *slog.Logger
+	hive          hive.Hive
+	templatesPath string
 }
 
 func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Server, error) {
