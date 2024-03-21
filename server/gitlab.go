@@ -2,16 +2,19 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/xanzy/go-gitlab"
 )
 
 func (s *Server) CreateRepoInGroup(group *gitlab.Group, gitlabData GitlabData) (*gitlab.Project, error) {
+	path := strings.Replace(gitlabData.NewRepoName, " ", "_", -1)
+
 	opt := &gitlab.ForkProjectOptions{
 		MergeRequestDefaultTargetSelf: gitlab.Ptr(true),
 		Name:                          gitlab.Ptr(gitlabData.NewRepoName),
 		NamespaceID:                   gitlab.Ptr(group.ID),
-		Path:                          gitlab.Ptr(gitlabData.NewRepoName),
+		Path:                          gitlab.Ptr(path),
 		Visibility:                    gitlab.Ptr(gitlab.PrivateVisibility),
 	}
 
