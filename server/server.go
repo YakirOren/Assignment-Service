@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
-	"log/slog"
-
 	"gitlab-service/config"
 	"gitlab-service/hive"
+	"log/slog"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -24,8 +24,27 @@ func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Ser
 	}
 
 	return &Server{
-		gitlab: client,
-		logger: logger,
-		hive:   hive,
+		gitlab:        client,
+		logger:        logger,
+		hive:          hive,
+		templatesPath: config.TemplatesPath,
 	}, nil
+}
+
+func requestID(ctx *fiber.Ctx) interface{} {
+	return ctx.Context().Value("requestid")
+}
+
+func (s *Server) auth(ctx *fiber.Ctx) {
+	authToken, ok := ctx.GetReqHeaders()["Authorization"]
+	if !ok {
+		return
+	}
+	if authToken[0] != "" && authToken[0] != s.hive.Token() {
+		s.hive.SetToken(authToken[0])
+	}
+}
+
+func (s *Server) requestLogger(ctx *fiber.Ctx, body Request) *slog.Logger {
+	return s.logger.With("username", body.UserName).With("assignment_id", body.AssignmentID).With("requestid", ctx.Context().Value("requestid"))
 }

@@ -2,12 +2,13 @@ package server
 
 import (
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/xanzy/go-gitlab"
 )
 
-func (s *Server) CreateRepoInGroup(group *gitlab.Group, gitlabData GitlabData) (*gitlab.Project, error) {
+func (s *Server) createRepoInGroup(group *gitlab.Group, gitlabData GitlabData) (*gitlab.Project, error) {
 	path := strings.Replace(gitlabData.NewRepoName, " ", "_", -1)
 
 	opt := &gitlab.ForkProjectOptions{
@@ -91,4 +92,35 @@ func (s *Server) addUserToProject(user *gitlab.User, group *gitlab.Project) erro
 
 	_, _, err := s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
 	return err
+}
+
+func (s *Server) removeBranchProtection(project *gitlab.Project) error {
+	branches, _, err := s.gitlab.ProtectedBranches.ListProtectedBranches(project.ID, nil)
+	if err != nil {
+		return err
+	}
+
+	for _, b := range branches {
+		_, _ = s.gitlab.ProtectedBranches.UnprotectRepositoryBranches(project.ID, b.Name)
+	}
+
+	return nil
+}
+
+func (s *Server) buildRepoPath(body Request) string {
+	data := body.OnCreationData.Gitlab
+	repo := strings.Replace(data.NewRepoName, " ", "_", -1)
+	return filepath.Join(data.Namespace, body.UserName, repo)
+}
+
+func (s *Server) projectExists(body Request) (*gitlab.Project, bool) {
+	project, r, err := s.gitlab.Projects.GetProject(s.buildRepoPath(body), nil)
+	if err != nil {
+		return nil, false
+	}
+
+	if r.StatusCode == http.StatusNotFound {
+		return nil, false
+	}
+	return project, true
 }

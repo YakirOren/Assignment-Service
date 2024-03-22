@@ -11,4 +11,5 @@ type Config struct {
 	Gitlab          Gitlab
 	HiveURL         string `env:"HIVE_URL,required,notEmpty"`
 	InsecureHive    bool   `env:"INSECURE_HIVE" envDefault:"false"`
+	TemplatesPath   string `env:"TEMPLATES_PATH,required,notEmpty"`
 }
