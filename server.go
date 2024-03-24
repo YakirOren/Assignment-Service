@@ -30,7 +30,7 @@ func main() {
 		return
 	}
 
-	hiveClient := hive.New(conf.HiveURL, conf.InsecureHive, logger)
+	hiveClient := hive.New(conf.HiveURL, logger)
 
 	serv, err := server.NewServer(conf, logger, hiveClient)
 	if err != nil {

@@ -57,7 +57,7 @@ func (s *Server) listUsersByName(username string) (*gitlab.User, bool) {
 		Username: gitlab.Ptr(username),
 	})
 
-	if r.StatusCode == http.StatusNotFound {
+	if r != nil && r.StatusCode == http.StatusNotFound {
 		return nil, false
 	}
 

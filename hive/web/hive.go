@@ -29,12 +29,12 @@ func (h *Hive) SetToken(token string) {
 	h.token = token
 }
 
-func New(hiveURL string, insecure bool, logger *slog.Logger) hive.Hive {
+func New(hiveURL string, logger *slog.Logger) hive.Hive {
 	client := retryablehttp.NewClient()
 	client.Logger = logger
 
 	client.RetryMax = 10
-	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecure}
+	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	return &Hive{
 		hiveURL: hiveURL,

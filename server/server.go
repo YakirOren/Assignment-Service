@@ -1,10 +1,12 @@
 package server
 
 import (
+	"crypto/tls"
 	"fmt"
 	"gitlab-service/config"
 	"gitlab-service/hive"
 	"log/slog"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/xanzy/go-gitlab"
@@ -18,7 +20,11 @@ type Server struct {
 }
 
 func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Server, error) {
-	client, err := gitlab.NewClient(config.Gitlab.GitlabToken, gitlab.WithBaseURL(config.Gitlab.GitlabAPIURL))
+	httpClient := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+
+	client, err := gitlab.NewClient(config.Gitlab.GitlabToken, gitlab.WithBaseURL(config.Gitlab.GitlabAPIURL), gitlab.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
