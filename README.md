@@ -31,7 +31,6 @@ What is this?
 }
 ```
 
-
 ![](images/full_description.png)
 
 
@@ -39,5 +38,12 @@ What is this?
 ![](images/mininal_description.png)
 
 
+## Changing the access level
+* By default, the service adds the users as developers to new repositories
+* set the env variable `ACCESS_LEVEL=40`, to add them as maintainers.
+* https://docs.gitlab.com/ee/api/access_requests.html
+
+
 ### Configuring instructions
 * see templates directory
+* **NOTE: `git.md` and `short-git.md` files must exist.** 
