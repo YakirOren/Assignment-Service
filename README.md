@@ -38,3 +38,6 @@ What is this?
 * With `detailed_instructions` set to `true`
 ![](images/mininal_description.png)
 
+
+### Configuring instructions
+* see templates directory

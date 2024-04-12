@@ -11,4 +11,5 @@ type Config struct {
 	Gitlab          Gitlab
 	HiveURL         string `env:"HIVE_URL,required,notEmpty"`
 	TemplatesPath   string `env:"TEMPLATES_PATH,required,notEmpty"`
+	Retries         int    `env:"RETRIES" envDefault:"5"`
 }

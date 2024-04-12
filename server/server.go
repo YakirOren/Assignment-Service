@@ -17,6 +17,7 @@ type Server struct {
 	logger        *slog.Logger
 	hive          hive.Hive
 	templatesPath string
+	retries       int
 }
 
 func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Server, error) {
@@ -33,6 +34,7 @@ func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Ser
 		gitlab:        client,
 		logger:        logger,
 		hive:          hive,
+		retries:       config.Retries,
 		templatesPath: config.TemplatesPath,
 	}, nil
 }
