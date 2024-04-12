@@ -5,17 +5,19 @@ import (
 )
 
 type ProjectCreator struct {
-	gitlab     *gitlab.Client
-	userName   string
-	gitlabData *Data
-	retries    int
+	gitlab          *gitlab.Client
+	userName        string
+	gitlabData      *Data
+	retries         int
+	userAccessLevel gitlab.AccessLevelValue
 }
 
-func New(client *gitlab.Client, UserName string, data *Data, retries int) *ProjectCreator {
+func New(client *gitlab.Client, UserName string, data *Data, retries int, accessLevel gitlab.AccessLevelValue) *ProjectCreator {
 	return &ProjectCreator{
-		gitlab:     client,
-		userName:   UserName,
-		gitlabData: data,
-		retries:    retries,
+		gitlab:          client,
+		userName:        UserName,
+		gitlabData:      data,
+		retries:         retries,
+		userAccessLevel: accessLevel,
 	}
 }

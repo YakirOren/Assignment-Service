@@ -66,7 +66,7 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 			Project        *gitlab.Project
 		}{body.UserName, body.OnCreationData.Gitlab.BaseBranchName, body.OnCreationData.Gitlab.WorkBranchName, project}
 
-		if err := s.UpdateAssignmentWithTemplate(body.AssignmentID, filepath.Join(s.templatesPath, gitTemplateFile), a); err != nil {
+		if err := s.UpdateAssignmentWithTemplate(body.AssignmentID, filepath.Join(s.config.TemplatesPath, gitTemplateFile), a); err != nil {
 			log.Error(err.Error())
 		}
 
@@ -77,7 +77,7 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 		desc := body.OnCreationData.Description
 
 		for _, t := range desc.Instructions {
-			if err := s.UpdateAssignmentWithTemplate(body.AssignmentID, filepath.Join(s.templatesPath, t), body); err != nil {
+			if err := s.UpdateAssignmentWithTemplate(body.AssignmentID, filepath.Join(s.config.TemplatesPath, t), body); err != nil {
 				log.Error(err.Error())
 			}
 		}
@@ -87,8 +87,7 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 }
 
 func (s *Server) processGitlab(data *gitlabWrapper.Data, username string, log *slog.Logger) (*gitlab.Project, error) {
-	wrapper := gitlabWrapper.New(s.gitlab, username, data, s.retries)
-
+	wrapper := gitlabWrapper.New(s.gitlab, username, data, s.config.Retries, s.config.AccessLevel)
 	user, exists := wrapper.GetUser()
 	if !exists {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "user doesn't exist on gitlab")

@@ -66,7 +66,7 @@ func (s *ProjectCreator) GetProject() (*gitlab.Project, bool) {
 func (s *ProjectCreator) AddUserToProject(user *gitlab.User, group *gitlab.Project) error {
 	opt := &gitlab.AddProjectMemberOptions{
 		UserID:      user.ID,
-		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+		AccessLevel: gitlab.Ptr(s.userAccessLevel),
 	}
 
 	_, _, err := s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)

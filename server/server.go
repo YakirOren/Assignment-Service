@@ -13,11 +13,10 @@ import (
 )
 
 type Server struct {
-	gitlab        *gitlab.Client
-	logger        *slog.Logger
-	hive          hive.Hive
-	templatesPath string
-	retries       int
+	gitlab *gitlab.Client
+	logger *slog.Logger
+	hive   hive.Hive
+	config *config.Config
 }
 
 func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Server, error) {
@@ -31,11 +30,10 @@ func NewServer(config *config.Config, logger *slog.Logger, hive hive.Hive) (*Ser
 	}
 
 	return &Server{
-		gitlab:        client,
-		logger:        logger,
-		hive:          hive,
-		retries:       config.Retries,
-		templatesPath: config.TemplatesPath,
+		gitlab: client,
+		logger: logger,
+		hive:   hive,
+		config: config,
 	}, nil
 }
 
