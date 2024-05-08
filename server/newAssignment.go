@@ -87,7 +87,8 @@ func (s *Server) OnNewAssignment(ctx *fiber.Ctx) error {
 }
 
 func (s *Server) processGitlab(data *gitlabWrapper.Data, username string, log *slog.Logger) (*gitlab.Project, error) {
-	wrapper := gitlabWrapper.New(s.gitlab, username, data, s.config.Retries, s.config.AccessLevel)
+	wrapper := gitlabWrapper.New(s.gitlab,
+		username, data, s.config.Retries, s.config.AccessLevel, log)
 	user, exists := wrapper.GetUser()
 	if !exists {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "user doesn't exist on gitlab")
@@ -116,7 +117,6 @@ func (s *Server) processGitlab(data *gitlabWrapper.Data, username string, log *s
 		return project, nil
 	}
 
-	log.Info("creating new repo")
 	project, err := wrapper.CreateRepoInGroup(usersGroup)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new repo inside the users group: %w", err)
@@ -124,7 +124,6 @@ func (s *Server) processGitlab(data *gitlabWrapper.Data, username string, log *s
 
 	log.Info("created repo", slog.String("path", project.Path))
 
-	log.Info("adding the user to the new group")
 	if err = wrapper.AddUserToProject(user, project); err != nil {
 		return nil, fmt.Errorf("failed to add user to project: %w", err)
 	}

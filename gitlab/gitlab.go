@@ -68,7 +68,7 @@ func (s *ProjectCreator) AddUserToProject(user *gitlab.User, group *gitlab.Proje
 		UserID:      user.ID,
 		AccessLevel: gitlab.Ptr(s.userAccessLevel),
 	}
-
+	s.log.Info("adding the user to the new group")
 	_, _, err := s.gitlab.ProjectMembers.AddProjectMember(group.ID, opt)
 	return err
 }
@@ -83,6 +83,8 @@ func (s *ProjectCreator) CreateRepoInGroup(group *gitlab.Group) (*gitlab.Project
 		Visibility:                    gitlab.Ptr(gitlab.PrivateVisibility),
 	}
 
+	s.log.Info("creating new repo", path)
+
 	project, _, err := s.gitlab.Projects.ForkProject(s.gitlabData.SourceRepo, opt)
 	if err != nil {
 		return nil, err
@@ -90,7 +92,8 @@ func (s *ProjectCreator) CreateRepoInGroup(group *gitlab.Group) (*gitlab.Project
 
 	created := s.waitForProjectCreation()
 	if !created {
-		return nil, errors.New("fork project took too long, try to increase the retry counter")
+		s.log.Error("fork project took too long, try to increase the retry counter")
+		return nil, errors.New("fork project took too long")
 	}
 
 	_, err = s.gitlab.Projects.DeleteProjectForkRelation(project.ID)
@@ -106,7 +109,8 @@ func (s *ProjectCreator) waitForProjectCreation() bool {
 	for i := 0; i < s.retries; i++ {
 		_, exists = s.GetProject()
 		if !exists {
-			time.Sleep(time.Duration(math.Pow(2, float64(i))) * time.Second)
+			s.log.Info("waiting for project creation")
+			time.Sleep(time.Duration(math.Pow(2, float64(i+2))) * time.Second)
 		}
 	}
 

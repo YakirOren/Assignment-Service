@@ -1,7 +1,7 @@
 ## Hive Assignment Service (Gitlab Service)
 
 What is this?
-* A service that runs an action when a task for new assignment in hive.
+* A service that runs an action when a new assignment is given.
 
 
 
@@ -34,7 +34,7 @@ What is this?
 ![](images/full_description.png)
 
 
-* With `detailed_instructions` set to `true`
+* With `detailed_instructions` set to `false`
 ![](images/mininal_description.png)
 
 
