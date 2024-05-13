@@ -90,10 +90,8 @@ func (s *ProjectCreator) CreateRepoInGroup(group *gitlab.Group) (*gitlab.Project
 		return nil, err
 	}
 
-	created := s.waitForProjectCreation()
-	if !created {
-		s.log.Error("fork project took too long, try to increase the retry counter")
-		return nil, errors.New("fork project took too long")
+	if err := s.waitForProjectCreation(); err != nil {
+		return nil, err
 	}
 
 	_, err = s.gitlab.Projects.DeleteProjectForkRelation(project.ID)
@@ -104,17 +102,21 @@ func (s *ProjectCreator) CreateRepoInGroup(group *gitlab.Group) (*gitlab.Project
 	return project, nil
 }
 
-func (s *ProjectCreator) waitForProjectCreation() bool {
-	exists := false
+func (s *ProjectCreator) waitForProjectCreation() error {
 	for i := 0; i < s.retries; i++ {
-		_, exists = s.GetProject()
-		if !exists {
-			s.log.Info("waiting for project creation")
-			time.Sleep(time.Duration(math.Pow(2, float64(i+2))) * time.Second)
+		p, exists := s.GetProject()
+		if p.ImportStatus == "failed" {
+			return errors.New("failed to create the new repo: " + p.ImportError)
+		}
+
+		if !exists || p.ImportStatus != "finished" {
+			s.log.With("import_status", p.ImportStatus).Info("waiting for project to finish")
+
+			time.Sleep(time.Duration(math.Pow(1, float64(i+2))) * time.Second)
 		}
 	}
 
-	return exists
+	return nil
 }
 func (s *ProjectCreator) CreateUsersSubGroup() (*gitlab.Group, error) {
 	group, _, err := s.gitlab.Groups.GetGroup(s.gitlabData.Namespace, nil)
@@ -122,13 +124,11 @@ func (s *ProjectCreator) CreateUsersSubGroup() (*gitlab.Group, error) {
 		return nil, err
 	}
 
-	opt := &gitlab.CreateGroupOptions{
+	subgroup, _, err := s.gitlab.Groups.CreateGroup(&gitlab.CreateGroupOptions{
 		Name:     gitlab.Ptr(s.userName),
 		Path:     gitlab.Ptr(s.userName),
 		ParentID: gitlab.Ptr(group.ID),
-	}
-
-	subgroup, _, err := s.gitlab.Groups.CreateGroup(opt)
+	})
 	if err != nil {
 		return nil, err
 	}

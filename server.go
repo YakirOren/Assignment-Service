@@ -39,7 +39,8 @@ func main() {
 	}
 
 	app := fiber.New(fiber.Config{
-		AppName: conf.ApplicationName,
+		AppName:               conf.ApplicationName,
+		DisableStartupMessage: true,
 	})
 
 	app.Use(slogfiber.New(logger))
