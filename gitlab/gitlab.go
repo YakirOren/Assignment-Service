@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"errors"
+	"log/slog"
 	"math"
 	"net/http"
 	"path/filepath"
@@ -83,7 +84,7 @@ func (s *ProjectCreator) CreateRepoInGroup(group *gitlab.Group) (*gitlab.Project
 		Visibility:                    gitlab.Ptr(gitlab.PrivateVisibility),
 	}
 
-	s.log.Info("creating new repo", path)
+	s.log.Info("creating new repo", slog.String("path", path))
 
 	project, _, err := s.gitlab.Projects.ForkProject(s.gitlabData.SourceRepo, opt)
 	if err != nil {
@@ -112,7 +113,8 @@ func (s *ProjectCreator) waitForProjectCreation() error {
 		if !exists || p.ImportStatus != "finished" {
 			s.log.With("import_status", p.ImportStatus).Info("waiting for project to finish")
 
-			time.Sleep(time.Duration(math.Pow(1, float64(i+2))) * time.Second)
+			timeout := time.Duration(math.Exp2(float64(i+2))) * time.Second
+			time.Sleep(timeout)
 		}
 	}
 
